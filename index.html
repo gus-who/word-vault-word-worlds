@@ -1,0 +1,1077 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#12100e">
+<title>The Word Vault — Word Worlds</title>
+<style>
+:root{
+  --iron-0:#0c0a09;
+  --iron-1:#12100e;
+  --iron-2:#1c1815;
+  --iron-3:#2a2320;
+  --iron-4:#3a302a;
+  --ash:#8a7d72;
+  --ash-light:#c7bbae;
+  --parchment:#efe6d6;
+  --ember:#ff6b35;
+  --ember-2:#ff8c42;
+  --gold:#ffb347;
+  --gold-soft:#e8c37a;
+  --good:#7bd88f;
+  --warn:#ffcf6b;
+  --bad:#e86a6a;
+  --close:#f0a35e;
+  /* restoration level 0..1 drives the forge coming back to life */
+  --restore:0;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{margin:0;padding:0;height:100%;}
+body{
+  font-family:'Iowan Old Style','Palatino Linotype',Palatino,Georgia,serif;
+  background:
+    radial-gradient(120% 90% at 50% -10%, #241a14 0%, var(--iron-1) 45%, var(--iron-0) 100%);
+  color:var(--parchment);
+  min-height:100%;
+  overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+#app{max-width:560px;margin:0 auto;min-height:100vh;position:relative;padding:0 16px 40px;}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit;}
+h1,h2,h3{font-weight:600;margin:0;letter-spacing:.02em;}
+
+/* ---------- shared ---------- */
+.screen{animation:rise .45s cubic-bezier(.2,.7,.2,1);}
+@keyframes rise{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:none;}}
+.eyebrow{font-size:.72rem;letter-spacing:.32em;text-transform:uppercase;color:var(--ash);
+  font-family:ui-sans-serif,system-ui,sans-serif;font-weight:600;}
+.serif-title{font-size:2rem;line-height:1.05;color:var(--parchment);text-shadow:0 2px 20px rgba(255,107,53,.25);}
+.body{font-family:ui-sans-serif,system-ui,-apple-system,sans-serif;}
+.muted{color:var(--ash);}
+.center{text-align:center;}
+
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:.5em;
+  font-family:ui-sans-serif,system-ui,sans-serif;font-weight:650;font-size:1rem;
+  padding:15px 22px;border-radius:14px;
+  background:linear-gradient(180deg,var(--ember-2),var(--ember));
+  color:#2a1206;box-shadow:0 8px 24px -8px rgba(255,107,53,.7),inset 0 1px 0 rgba(255,255,255,.35);
+  transition:transform .12s ease, box-shadow .12s ease, filter .12s;
+  width:100%;
+}
+.btn:active{transform:translateY(2px) scale(.99);filter:brightness(1.05);}
+.btn.ghost{background:var(--iron-3);color:var(--parchment);box-shadow:inset 0 0 0 1px var(--iron-4);}
+.btn.ghost:active{filter:brightness(1.2);}
+.btn.small{width:auto;padding:11px 18px;font-size:.9rem;border-radius:11px;}
+
+/* ---------- map ---------- */
+.mapwrap{padding-top:52px;}
+.forge-emblem{
+  width:190px;height:190px;margin:0 auto 6px;position:relative;
+  display:flex;align-items:center;justify-content:center;
+}
+.anvil{
+  font-size:100px;line-height:1;position:relative;z-index:2;
+  filter:
+    grayscale(calc(1 - var(--restore)))
+    brightness(calc(.55 + var(--restore)*.7))
+    drop-shadow(0 0 calc(var(--restore)*34px) rgba(255,120,50,calc(var(--restore)*.9)));
+  transition:filter .8s ease;
+}
+.forge-glow{
+  position:absolute;inset:0;border-radius:50%;
+  background:radial-gradient(circle at 50% 62%, rgba(255,120,40,.9), rgba(255,80,20,.25) 40%, transparent 68%);
+  opacity:calc(var(--restore)*.9);filter:blur(6px);transition:opacity .8s ease;z-index:1;
+}
+.embers{position:absolute;inset:-20px;pointer-events:none;z-index:3;opacity:calc(.15 + var(--restore));}
+.ember{position:absolute;bottom:34%;left:50%;width:5px;height:5px;border-radius:50%;
+  background:var(--gold);box-shadow:0 0 8px var(--ember);opacity:0;
+  animation:float 2.6s ease-in infinite;}
+@keyframes float{
+  0%{transform:translate(0,0) scale(.6);opacity:0;}
+  15%{opacity:1;}
+  100%{transform:translate(var(--dx,0),-120px) scale(0);opacity:0;}
+}
+.worldlist{margin-top:26px;display:flex;flex-direction:column;gap:12px;}
+.world-card{
+  display:flex;align-items:center;gap:14px;text-align:left;
+  padding:16px;border-radius:16px;background:var(--iron-2);
+  box-shadow:inset 0 0 0 1px var(--iron-3);width:100%;transition:transform .12s, box-shadow .2s;
+}
+.world-card.active{
+  background:linear-gradient(180deg,var(--iron-3),var(--iron-2));
+  box-shadow:inset 0 0 0 1px rgba(255,140,66,.5),0 10px 30px -14px rgba(255,107,53,.6);
+}
+.world-card.active:active{transform:scale(.985);}
+.world-card.locked{opacity:.5;filter:saturate(.4);}
+.wc-icon{font-size:30px;width:44px;text-align:center;flex:0 0 auto;}
+.wc-body{flex:1;min-width:0;}
+.wc-name{font-size:1.12rem;color:var(--parchment);}
+.wc-sub{font-size:.78rem;color:var(--ash);font-family:ui-sans-serif,system-ui,sans-serif;margin-top:2px;}
+.wc-tag{font-size:.66rem;letter-spacing:.15em;text-transform:uppercase;font-family:ui-sans-serif,system-ui,sans-serif;
+  padding:5px 9px;border-radius:20px;font-weight:700;flex:0 0 auto;}
+.tag-play{background:rgba(255,140,66,.16);color:var(--gold);}
+.tag-lock{background:var(--iron-3);color:var(--ash);}
+.tag-done{background:rgba(123,216,143,.15);color:var(--good);}
+
+/* mini restore bar on world card */
+.wc-bar{height:5px;border-radius:4px;background:var(--iron-3);margin-top:9px;overflow:hidden;}
+.wc-bar>i{display:block;height:100%;background:linear-gradient(90deg,var(--ember),var(--gold));width:0;transition:width .6s;}
+
+/* ---------- run header ---------- */
+.runhead{position:sticky;top:0;z-index:20;padding:14px 0 12px;
+  background:linear-gradient(180deg,var(--iron-1) 60%,transparent);}
+.runhead-top{display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.back{font-family:ui-sans-serif,system-ui,sans-serif;font-size:.82rem;color:var(--ash);padding:6px 4px;}
+.phase-name{font-family:ui-sans-serif,system-ui,sans-serif;font-size:.72rem;letter-spacing:.18em;
+  text-transform:uppercase;color:var(--gold-soft);font-weight:700;}
+.score-chip{font-family:ui-sans-serif,system-ui,sans-serif;font-weight:800;font-size:.95rem;color:var(--parchment);}
+.score-chip small{color:var(--ash);font-weight:600;}
+.restore-track{height:9px;border-radius:6px;background:var(--iron-3);margin-top:10px;overflow:hidden;
+  box-shadow:inset 0 1px 3px rgba(0,0,0,.5);position:relative;}
+.restore-fill{height:100%;width:0;border-radius:6px;
+  background:linear-gradient(90deg,#c9421a,var(--ember),var(--gold));
+  box-shadow:0 0 14px rgba(255,140,60,.7);transition:width .7s cubic-bezier(.2,.7,.2,1);}
+.restore-label{font-family:ui-sans-serif,system-ui,sans-serif;font-size:.66rem;color:var(--ash);
+  margin-top:5px;letter-spacing:.06em;text-align:right;}
+
+/* ---------- round content ---------- */
+.round{padding-top:8px;}
+.progress-dots{display:flex;gap:6px;justify-content:center;margin:2px 0 18px;}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--iron-3);transition:background .3s,transform .3s;}
+.dot.done{background:var(--gold);}
+.dot.cur{background:var(--ember);transform:scale(1.5);}
+
+.situation-card{
+  background:linear-gradient(180deg,#211a15,#171310);
+  border-radius:18px;padding:22px 20px;position:relative;
+  box-shadow:inset 0 0 0 1px var(--iron-3),0 16px 40px -20px rgba(0,0,0,.8);
+}
+.situation-card::before{content:'“';position:absolute;top:2px;left:12px;font-size:3.4rem;color:rgba(255,140,66,.22);}
+.prompt-label{font-family:ui-sans-serif,system-ui,sans-serif;font-size:.7rem;letter-spacing:.2em;
+  text-transform:uppercase;color:var(--ash);font-weight:700;margin-bottom:8px;}
+.situation-text{font-size:1.24rem;line-height:1.45;color:var(--parchment);}
+.ask{font-family:ui-sans-serif,system-ui,sans-serif;text-align:center;color:var(--gold-soft);
+  font-size:.9rem;margin:18px 0 12px;font-weight:600;}
+
+.cards{display:flex;flex-direction:column;gap:11px;}
+.wordcard{
+  display:flex;align-items:baseline;gap:12px;text-align:left;padding:16px 18px;border-radius:15px;
+  background:linear-gradient(180deg,var(--iron-3),var(--iron-2));
+  box-shadow:inset 0 0 0 1px var(--iron-4),0 6px 16px -10px #000;
+  transition:transform .1s, box-shadow .15s, opacity .3s, background .3s;
+  width:100%;
+}
+.wordcard:active{transform:scale(.985);}
+.wordcard .w{font-size:1.28rem;color:var(--parchment);font-weight:600;letter-spacing:.01em;}
+.wordcard .g{font-family:ui-sans-serif,system-ui,sans-serif;font-size:.8rem;color:var(--ash);flex:1;}
+.wordcard.dim{opacity:.4;}
+.wordcard.pick-exact{background:linear-gradient(180deg,#22482c,#1a3322);box-shadow:inset 0 0 0 1.5px var(--good),0 0 26px -6px rgba(123,216,143,.6);}
+.wordcard.pick-close{background:linear-gradient(180deg,#4a3320,#33251a);box-shadow:inset 0 0 0 1.5px var(--close),0 0 26px -8px rgba(240,163,94,.5);}
+.wordcard.pick-miss{background:linear-gradient(180deg,#4a2424,#331a1a);box-shadow:inset 0 0 0 1.5px var(--bad);}
+.wordcard.reveal-exact{box-shadow:inset 0 0 0 1.5px rgba(123,216,143,.7);}
+.wordcard .tick{margin-left:auto;font-weight:800;font-family:ui-sans-serif,system-ui,sans-serif;font-size:.82rem;}
+
+/* feedback */
+.feedback{margin-top:18px;animation:rise .3s;}
+.verdict{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.badge{font-family:ui-sans-serif,system-ui,sans-serif;font-weight:800;font-size:.74rem;letter-spacing:.14em;
+  text-transform:uppercase;padding:7px 12px;border-radius:20px;}
+.badge.exact{background:rgba(123,216,143,.16);color:var(--good);}
+.badge.close{background:rgba(240,163,94,.18);color:var(--close);}
+.badge.miss{background:rgba(232,106,106,.16);color:var(--bad);}
+.pts{margin-left:auto;font-family:ui-sans-serif,system-ui,sans-serif;font-weight:800;color:var(--gold);font-size:1.05rem;}
+.explain{font-family:ui-sans-serif,system-ui,sans-serif;font-size:.96rem;line-height:1.5;color:var(--ash-light);
+  background:var(--iron-2);border-radius:13px;padding:14px 15px;box-shadow:inset 0 0 0 1px var(--iron-3);}
+.explain b{color:var(--parchment);}
+.explain + .explain{margin-top:9px;}
+.explain .lead{display:block;font-weight:700;color:var(--gold-soft);margin-bottom:3px;font-size:.78rem;
+  letter-spacing:.08em;text-transform:uppercase;}
+
+/* duel */
+.timer-track{height:7px;border-radius:5px;background:var(--iron-3);overflow:hidden;margin:4px 0 20px;}
+.timer-fill{height:100%;width:100%;background:linear-gradient(90deg,var(--ember),var(--gold));
+  transition:width .1s linear;}
+.timer-fill.low{background:var(--bad);}
+.duel-vs{display:flex;align-items:center;justify-content:center;gap:14px;margin:2px 0 18px;}
+.duel-name{font-size:1.15rem;color:var(--gold-soft);font-weight:600;}
+.duel-vs span{font-family:ui-sans-serif,system-ui,sans-serif;color:var(--ash);font-size:.8rem;font-weight:700;}
+.duel-cards{display:flex;gap:12px;}
+.duel-cards .wordcard{flex:1;justify-content:center;text-align:center;flex-direction:column;align-items:center;}
+.duel-cards .wordcard .w{font-size:1.35rem;}
+.combo{font-family:ui-sans-serif,system-ui,sans-serif;text-align:center;font-size:.8rem;color:var(--gold);
+  font-weight:700;height:18px;margin-bottom:6px;letter-spacing:.05em;}
+
+/* results */
+.result-hero{text-align:center;padding-top:40px;}
+.result-anvil{font-size:96px;filter:drop-shadow(0 0 40px rgba(255,140,60,.8));animation:pulseGlow 2.4s ease-in-out infinite;}
+@keyframes pulseGlow{0%,100%{filter:drop-shadow(0 0 24px rgba(255,140,60,.6));}50%{filter:drop-shadow(0 0 48px rgba(255,180,90,.95));}}
+.big-score{font-size:3.4rem;font-weight:700;color:var(--gold);line-height:1;margin:14px 0 2px;
+  text-shadow:0 0 30px rgba(255,140,60,.5);}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:22px 0;}
+.stat{background:var(--iron-2);border-radius:13px;padding:14px;box-shadow:inset 0 0 0 1px var(--iron-3);text-align:left;}
+.stat .k{font-family:ui-sans-serif,system-ui,sans-serif;font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ash);}
+.stat .v{font-size:1.5rem;color:var(--parchment);font-weight:600;margin-top:3px;}
+.stat .v small{font-size:.8rem;color:var(--ash);}
+.rank-line{font-family:ui-sans-serif,system-ui,sans-serif;color:var(--ash-light);text-align:center;
+  font-size:1rem;line-height:1.5;margin:6px 0 22px;}
+.rank-line b{color:var(--gold-soft);}
+
+.toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(30px);
+  background:var(--iron-3);color:var(--gold);font-family:ui-sans-serif,system-ui,sans-serif;font-weight:700;
+  padding:12px 20px;border-radius:30px;box-shadow:0 12px 30px -10px #000,inset 0 0 0 1px var(--iron-4);
+  opacity:0;transition:.35s cubic-bezier(.2,.7,.2,1);z-index:50;font-size:.9rem;pointer-events:none;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+.footer-note{font-family:ui-sans-serif,system-ui,sans-serif;font-size:.72rem;color:var(--iron-4);
+  text-align:center;margin-top:30px;}
+.spacer{height:14px;}
+.foot-actions{display:flex;flex-direction:column;gap:10px;margin-top:8px;}
+.strike-flash{position:fixed;inset:0;pointer-events:none;background:radial-gradient(circle,rgba(255,180,80,.35),transparent 60%);
+  opacity:0;z-index:40;}
+.strike-flash.go{animation:flash .5s ease-out;}
+@keyframes flash{0%{opacity:1;}100%{opacity:0;}}
+
+/* ---------- game master (maker's mark) ---------- */
+.gm-banner{display:flex;align-items:center;gap:13px;padding:14px;border-radius:15px;
+  background:linear-gradient(180deg,#211a15,#171310);box-shadow:inset 0 0 0 1px var(--iron-3);}
+.gm-mark{flex:0 0 auto;width:56px;height:56px;border-radius:14px;display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(circle at 50% 60%,rgba(255,120,40,.18),transparent 70%);
+  box-shadow:inset 0 0 0 1px var(--iron-4);}
+.gm-mark .emblem{filter:drop-shadow(0 0 6px rgba(255,140,66,.4));}
+.gm-text{flex:1;min-width:0;}
+.gm-name{font-family:ui-sans-serif,system-ui,sans-serif;font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--gold-soft);font-weight:700;margin-bottom:4px;}
+.gm-line{font-size:1.02rem;line-height:1.42;color:var(--ash-light);font-style:italic;}
+
+/* ---------- commission (fill-in-the-blank) ---------- */
+:root{--commission-label:#8a6f4a;}
+.commission{background:linear-gradient(180deg,#efe6d6,#e2d4bd);color:#33271a;border-radius:16px;
+  padding:18px 18px 20px;box-shadow:0 14px 34px -18px #000,inset 0 0 0 1px #cbb896;position:relative;}
+.commission .prompt-label{letter-spacing:.22em;margin-bottom:10px;}
+.cloze{font-size:1.28rem;line-height:1.6;color:#2f2416;}
+.slot{display:inline-block;min-width:88px;text-align:center;font-weight:700;color:#a8632a;
+  padding:1px 10px 3px;margin:0 3px;border-bottom:2px dashed #c07a34;border-radius:5px;
+  background:linear-gradient(180deg,rgba(255,140,66,.18),rgba(255,140,66,.05));
+  box-shadow:0 0 14px rgba(255,120,40,.4);transition:.25s;}
+.slot.slot-good{color:#2f7a44;border-bottom-color:#3f9a58;background:rgba(90,190,120,.18);box-shadow:0 0 16px rgba(90,200,120,.4);}
+.slot.slot-bad{color:#a83a2a;border-bottom-color:#c05038;background:rgba(220,90,60,.16);}
+.plate-static{cursor:default;justify-content:center;}
+.plate-static .w{width:100%;text-align:center;}
+
+/* ---------- living forge: ember field + sparks ---------- */
+#embers-bg{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden;}
+#app{position:relative;z-index:1;}
+#embers-bg .eb{position:absolute;bottom:-8px;width:4px;height:4px;border-radius:50%;background:var(--gold);
+  box-shadow:0 0 7px var(--ember);opacity:0;animation:ebrise linear infinite;}
+@keyframes ebrise{0%{transform:translateY(0) scale(.5);opacity:0;}
+  12%{opacity:calc(.35 + var(--restore)*.5);}100%{transform:translateY(-105vh) translateX(var(--dx)) scale(0);opacity:0;}}
+.spark-burst{position:fixed;left:50%;top:38%;z-index:41;pointer-events:none;}
+.spk{position:absolute;width:4px;height:4px;border-radius:50%;background:var(--gold);
+  box-shadow:0 0 8px var(--ember);animation:spk .6s ease-out forwards;}
+@keyframes spk{0%{transform:translate(0,0) scale(1);opacity:1;}100%{transform:translate(var(--sx),var(--sy)) scale(0);opacity:0;}}
+.result-emblem{display:inline-block;animation:pulseGlow 2.4s ease-in-out infinite;}
+.result-emblem .emblem{filter:drop-shadow(0 0 26px rgba(255,150,60,.75));}
+</style>
+</head>
+<body>
+<div id="embers-bg"></div>
+<div id="app"></div>
+<div class="strike-flash" id="flash"></div>
+<div class="toast" id="toast"></div>
+
+<script src="data.js"></script>
+<script>
+/* ============================================================
+   THE WORD VAULT — WORD WORLDS
+   Full game: Forge is hand-crafted; other worlds generate from WORLD_DATA
+   Words: Conjure · Contrive · Confect · Foment
+   Loop: Map → Precision → Impostor → Sharpen → Sibling Duel → Restoration
+   ============================================================ */
+
+/* active globals — reassigned by activateWorld() when entering a world */
+let WORDS, PRECISION, IMPOSTOR, SHARPEN, DUEL, GM, TARGET, W;
+
+/* ---- THE FORGE (hand-crafted) ---- */
+const FORGE_WORDS = {
+  conjure:  {label:'Conjure',  def:'summon from nothing'},
+  contrive: {label:'Contrive', def:'visible artifice, no motive'},
+  confect:  {label:'Confect',  def:'cooked up to manipulate'},
+  foment:   {label:'Foment',   def:'stir unrest in people'},
+};
+
+/* per-world maker's-mark glyphs (inner mark, gold on iron medallion) */
+const GLYPHS = {
+  forge:`<path d="M30 55 L58 55 L54 49 L34 49 Z" fill="#ffb347"/><line x1="44" y1="49" x2="44" y2="40" stroke="#ffb347" stroke-width="2.4" stroke-linecap="round"/><path d="M34 34 L54 34" stroke="#ffb347" stroke-width="2.4" stroke-linecap="round"/><path d="M38 34 L38 30 L50 30 L50 34" fill="none" stroke="#ffb347" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>`,
+  ruins:`<path d="M34 30 L34 56 M50 30 L50 56" stroke="#ffb347" stroke-width="3" stroke-linecap="round"/><path d="M30 30 L54 30" stroke="#ffb347" stroke-width="3" stroke-linecap="round"/><path d="M50 44 L58 52" stroke="#ffb347" stroke-width="3" stroke-linecap="round"/>`,
+  court:`<path d="M30 52 L34 34 L44 46 L54 34 L58 52 Z" fill="none" stroke="#ffb347" stroke-width="2.6" stroke-linejoin="round"/><circle cx="34" cy="34" r="2.4" fill="#ffb347"/><circle cx="54" cy="34" r="2.4" fill="#ffb347"/>`,
+  citadel:`<path d="M32 56 L32 38 L36 38 L36 34 L40 34 L40 38 L44 38 L44 34 L48 34 L48 38 L52 38 L52 34 L56 34 L56 38 L56 56 Z" fill="none" stroke="#ffb347" stroke-width="2.4" stroke-linejoin="round"/>`,
+  mire:`<path d="M30 40 Q37 34 44 40 T58 40" fill="none" stroke="#ffb347" stroke-width="2.6" stroke-linecap="round"/><path d="M30 50 Q37 44 44 50 T58 50" fill="none" stroke="#ffb347" stroke-width="2.6" stroke-linecap="round"/>`,
+  underbelly:`<path d="M30 34 L58 34 L44 58 Z" fill="none" stroke="#ffb347" stroke-width="2.6" stroke-linejoin="round"/><circle cx="44" cy="42" r="2.6" fill="#ffb347"/>`,
+  hearth:`<path d="M44 30 C50 38 52 44 48 50 C52 48 54 44 54 44 C56 52 50 58 44 58 C38 58 33 53 34 46 C38 50 40 48 40 44 C40 38 44 34 44 30 Z" fill="#ffb347"/>`,
+  arena:`<path d="M32 32 L56 56 M56 32 L32 56" stroke="#ffb347" stroke-width="2.8" stroke-linecap="round"/>`,
+  orchard:`<circle cx="44" cy="46" r="12" fill="none" stroke="#ffb347" stroke-width="2.6"/><path d="M44 34 L44 28 M44 30 Q50 28 52 32" fill="none" stroke="#ffb347" stroke-width="2.4" stroke-linecap="round"/>`,
+  asylum:`<path d="M44 44 m0 0 a4 4 0 1 1 -6 3 a8 8 0 1 1 12 -6 a12 12 0 1 1 -18 9" fill="none" stroke="#ffb347" stroke-width="2.4" stroke-linecap="round"/>`,
+  flatlands:`<path d="M28 46 L60 46" stroke="#ffb347" stroke-width="3" stroke-linecap="round"/><path d="M34 52 L54 52" stroke="#ffb347" stroke-width="2" stroke-linecap="round" opacity=".7"/>`,
+  chapel:`<path d="M34 56 L34 42 Q44 30 54 42 L54 56" fill="none" stroke="#ffb347" stroke-width="2.6" stroke-linejoin="round"/><line x1="44" y1="38" x2="44" y2="50" stroke="#ffb347" stroke-width="2.4"/>`,
+  counting_house:`<circle cx="40" cy="40" r="8" fill="none" stroke="#ffb347" stroke-width="2.4"/><circle cx="50" cy="50" r="8" fill="none" stroke="#ffb347" stroke-width="2.4"/>`,
+  archive:`<path d="M32 32 L32 56 L44 52 L56 56 L56 32 L44 36 Z" fill="none" stroke="#ffb347" stroke-width="2.4" stroke-linejoin="round"/><line x1="44" y1="36" x2="44" y2="52" stroke="#ffb347" stroke-width="2"/>`,
+  throne_room:`<path d="M34 56 L34 34 L54 34 L54 56 M30 40 L34 40 M54 40 L58 40 M38 56 L38 48 L50 48 L50 56" fill="none" stroke="#ffb347" stroke-width="2.4" stroke-linejoin="round"/>`,
+  square:`<circle cx="44" cy="44" r="14" fill="none" stroke="#ffb347" stroke-width="2" stroke-dasharray="3 5"/><circle cx="44" cy="44" r="4" fill="#ffb347"/>`,
+};
+
+const FORGE_GM = {
+  name:'Wayland, the Forgewright',
+  intro:"Four words share my fire. They look alike — each is forged different. Set the right one, and the flame answers.",
+  duel:"Now the two closest blades. Same shape, one difference. Strike fast.",
+  win:"The fire holds true. You know my words by their temper now.",
+  low:"The embers still gutter. Come back — learn the seams.",
+  glyph:GLYPHS.forge,
+};
+function emblem(size, glyph){
+  return `<svg class="emblem" viewBox="0 0 88 88" width="${size}" height="${size}" aria-hidden="true">
+    <circle cx="44" cy="44" r="31" fill="#241d17" stroke="#5a3a22" stroke-width="2"/>
+    <circle cx="44" cy="44" r="31" fill="none" stroke="#ff8c42" stroke-width="1" opacity=".5"/>
+    <circle cx="44" cy="44" r="31" fill="none" stroke="#3a2c1e" stroke-width="1" stroke-dasharray="2 4"/>
+    ${glyph||GLYPHS.forge}
+  </svg>`;
+}
+function gmBanner(line){
+  return `<div class="gm-banner">
+    <div class="gm-mark">${emblem(56, GM.glyph)}</div>
+    <div class="gm-text"><div class="gm-name">${GM.name}</div><div class="gm-line">${line}</div></div>
+  </div>`;
+}
+
+/* ---- PRECISION ROUNDS: full per-word teaching for all four cards ---- */
+const FORGE_PRECISION = [
+  {
+    situation:"Somehow, with almost no funding and no team, she put together a fully working budget.",
+    tiers:{
+      conjure:{t:'exact', x:"With almost nothing to build from, the budget seems to appear out of thin air — its source hidden. That's <b>conjure</b>, exactly."},
+      contrive:{t:'close', x:"<b>Contrive</b> implies visible effort and seams — you'd <i>see</i> her straining. Here the striking thing is that it came from nothing, so conjure is sharper."},
+      confect:{t:'miss', x:"<b>Confect</b> needs a manipulative agenda — someone putting one over on you. This is resourcefulness, not deception."},
+      foment:{t:'miss', x:"<b>Foment</b> stirs unrest in <i>people</i>. A budget is an object, and nothing is being agitated — wrong target entirely."},
+    }
+  },
+  {
+    situation:"The film's happy ending felt forced and unearned — you could feel the writers straining for it.",
+    cloze:"You could feel the writers straining to % a happy ending the story had never earned.",
+    tiers:{
+      contrive:{t:'exact', x:"You can feel the seams and the strain, with no hidden motive behind it. Visible artifice is textbook <b>contrive</b>."},
+      confect:{t:'close', x:"<b>Confect</b> would need a deliberate agenda to manipulate you. Here there's just clumsy, visible effort — no scheme — so contrive is precise."},
+      conjure:{t:'miss', x:"<b>Conjure</b> means it appeared effortlessly, from nothing. This ending is the opposite — its <i>effort</i> is exactly what shows."},
+      foment:{t:'miss', x:"<b>Foment</b> stirs unrest in a group of people. An ending isn't people, and nothing is being roused."},
+    }
+  },
+  {
+    situation:"The leadership invented a budget crisis, timed perfectly to justify layoffs they'd already decided on.",
+    tiers:{
+      confect:{t:'exact', x:"The crisis was cooked up to serve a hidden agenda — cover for a decision already made. Intent to manipulate is baked in: <b>confect</b>."},
+      contrive:{t:'close', x:"<b>Contrive</b> would fit if the crisis merely felt artificial. Confect is sharper because there's a deliberate, manipulative agenda behind it."},
+      conjure:{t:'miss', x:"<b>Conjure</b> is neutral — a thing appearing from nothing. It misses the whole point here: a deliberate scheme to deceive."},
+      foment:{t:'miss', x:"<b>Foment</b> stirs unrest in people. They manufactured an <i>issue</i>, not a mob — so confect, not foment."},
+    }
+  },
+  {
+    situation:"It was a manufactured outrage, engineered specifically to dominate a single news cycle.",
+    cloze:"The whole thing was built to % an outrage big enough to own a single news cycle.",
+    tiers:{
+      confect:{t:'exact', x:"The outrage itself was manufactured as a deliberate act to serve an agenda. <b>Confect</b> describes fabricating the issue."},
+      foment:{t:'close', x:"<b>Foment</b> stirs unrest <i>in people</i>, over time. Confect describes manufacturing the issue itself as a single deliberate act — which is what happened here."},
+      contrive:{t:'miss', x:"<b>Contrive</b> would mean it merely looked artificial. This was purpose-built to manipulate, so confect is sharper."},
+      conjure:{t:'miss', x:"<b>Conjure</b> is neutral appearance-from-nothing. It misses the manipulative intent that defines this."},
+    }
+  },
+  {
+    situation:"Agitators had spent weeks quietly encouraging dissent and rebellion among the ranks.",
+    tiers:{
+      foment:{t:'exact', x:"Unrest is being stirred up in a group of people over time — the target is human agitation. That's <b>foment</b>, exactly."},
+      confect:{t:'close', x:"<b>Confect</b> fabricates a fake issue or crisis. Here nothing is manufactured — dissent is being stirred in people — so foment is the word."},
+      contrive:{t:'miss', x:"<b>Contrive</b> is about visible artifice in a <i>thing</i>. This is about rousing people, not building an artificial object."},
+      conjure:{t:'miss', x:"<b>Conjure</b> means summoning something from nothing. The dissent was cultivated in people over weeks, not conjured."},
+    }
+  },
+];
+
+/* ---- IMPOSTOR ROUND ---- */
+const FORGE_IMPOSTOR = {
+  situation:"A fake invoice — forged signatures, a backdated stamp, the works — built to slip past the auditors.",
+  ask:"Three of these words can describe making this. Eject the one that can't.",
+  order:['conjure','contrive','confect','foment'],
+  impostor:'foment',
+  fitNote:{
+    conjure:"can take an object (loosely — pulled from nowhere)",
+    contrive:"fits — visible, effortful artifice",
+    confect:"fits best — cooked up to deceive",
+  },
+  explain:"<b>Conjure</b>, <b>contrive</b> and <b>confect</b> can all act on an object like a fake invoice. <b>Foment</b> cannot — it only ever acts on <i>people</i>, stirring unrest. An invoice has no unrest to stir, so foment is the impostor.",
+};
+
+/* ---- SHARPEN ROUNDS (two-step: adequate → upgrade under new detail) ---- */
+const FORGE_SHARPEN = [
+  {
+    step1:{
+      situation:"The startup's 'organic' buzz looked staged — you could tell someone had worked to make it seem spontaneous.",
+      ask:"What's happening here?",
+      answer:'contrive',
+      options:['conjure','contrive','confect'],
+      ok:"Good — the artifice is visible, so <b>contrive</b> fits… for now.",
+    },
+    step2:{
+      add:"Then leaked emails show it was built deliberately to deceive investors into believing demand was real.",
+      ask:"New detail changes it. Sharpen your word.",
+      answer:'confect',
+      options:['contrive','confect','foment'],
+      explain:"Once a deliberate agenda to <i>deceive</i> appears, contrive is no longer precise. <b>Confect</b> captures the intent to manipulate.",
+    }
+  },
+  {
+    step1:{
+      situation:"With no team and no budget, he somehow produced a finished demo overnight.",
+      ask:"What's happening here?",
+      answer:'conjure',
+      options:['conjure','contrive','foment'],
+      ok:"Good — it appeared from nothing, so <b>conjure</b> fits… for now.",
+    },
+    step2:{
+      add:"In daylight you can see the duct tape and frantic improvisation barely holding it together.",
+      ask:"New detail changes it. Sharpen your word.",
+      answer:'contrive',
+      options:['conjure','contrive','confect'],
+      explain:"Once the seams and strain show, it's no longer a magical appearance. <b>Contrive</b> names the visible artifice.",
+    }
+  },
+];
+
+/* ---- SIBLING DUEL: the two closest words, Contrive vs Confect ---- */
+const FORGE_DUEL = {
+  a:'contrive', b:'confect',
+  timePerRound:7000,
+  rounds:[
+    {situation:"The tell-all memoir's 'confessions' were crafted to rehabilitate his image before the trial.", answer:'confect'},
+    {situation:"The sitcom's reunion scene was so forced it made the whole room wince.", answer:'contrive'},
+    {situation:"The 'spontaneous' fan campaign was secretly bankrolled by the studio to inflate ticket sales.", answer:'confect'},
+    {situation:"The plot's coincidences were so conveniently timed they shattered any sense of realism.", answer:'contrive'},
+    {situation:"The think-tank 'study' was commissioned expressly to lend the policy fake independent backing.", answer:'confect'},
+    {situation:"Their forced cheer at the all-hands was painfully unconvincing.", answer:'contrive'},
+  ]
+};
+
+/* points */
+const PTS = {exact:100, close:45, miss:15, impostor:100, sharpen1:40, sharpen2:60, duel:100, duelBonus:50};
+
+/* ============================================================
+   WORLD ENGINE — Forge is hand-crafted; all others generate from WORLD_DATA
+   ============================================================ */
+const GM_TABLE = {
+  ruins:{name:'the Keeper of Ash', intro:"All things here come apart — but never the same way twice. Name the manner of ruin.", duel:"Quick now, before it all crumbles. Which decay is which?", win:"You read ruin like a map. Nothing here can fool you.", low:"You mistake rot for wear. Walk the ruins again."},
+  court:{name:'Vesper, the Herald', intro:"Words wound differently at court. Choose the one that cuts as intended.", duel:"The court waits. Pick the sharper word, and be quick.", win:"A courtier's tongue. You wound with precision now.", low:"Your barbs land soft. Study the difference between insult and injury."},
+  citadel:{name:'Bastion, the Warden', intro:"Some things cannot be moved, beaten, or broken — but along different lines. Find the axis.", duel:"Hold the wall. Which strength holds here?", win:"Unshaken. You know exactly what cannot be broken.", low:"You confuse the unmovable with the unbeatable. Return."},
+  mire:{name:'the Fenreeve', intro:"Everything here traps, tears, or weighs you down. Name your trouble exactly.", duel:"Don't sink. Which snare is this?", win:"You walk the mire dry-footed. Well judged.", low:"You call every bog the same. Look closer at what holds you."},
+  underbelly:{name:'Sly, the Fence', intro:"Down here it's all filth and wrongness — but there's filth of the body and filth of the soul. Know which.", duel:"Eyes open. Which wrong is this?", win:"You read the gutter true. Nothing shocks you wrong.", low:"You mix moral rot with plain grime. Back to the shadows."},
+  hearth:{name:'the Hearthkeeper', intro:"Here we calm, yield, and soften — but sincerity varies. Weigh the giving.", duel:"Gently, quickly — which softening is this?", win:"You tell true comfort from cold gesture. Warm work.", low:"You take every yielding for the same. Sit by the fire longer."},
+  arena:{name:'Drin, the Marshal', intro:"Every word here moves someone to act — from a nudge to a mob. Match the force.", duel:"Rally fast. How great is the push?", win:"You measure every push exactly. To arms.", low:"You mistake a nudge for a march. Drill again."},
+  orchard:{name:'the Orchardist', intro:"Hunger and things kept out of reach. Name the wanting rightly.", duel:"Before it slips away — which craving?", win:"You know appetite from the lure that feeds it. Ripe work.", low:"You confuse the hunger with the bait. Another season."},
+  asylum:{name:'the Keeper', intro:"Altered states, rattled or unshaken. Name the daze with care.", duel:"Steady — which state is this?", win:"You read a mind's weather exactly. Composed.", low:"You blur the daze and the freeze. Return, calmly."},
+  flatlands:{name:'the Grey Reeve', intro:"Reluctance, dullness, and nonsense. Flat country — but each flatness differs.", duel:"Plainly now — which dullness?", win:"You find the edges in flat country. Sharp.", low:"It all reads grey to you yet. Cross the flatlands again."},
+  chapel:{name:'the Confessor', intro:"Belief, irritation, unease. Name the reaction, not the thing.", duel:"Softly, swiftly — which feeling?", win:"You name the tremor exactly. Faithful work.", low:"You mix the unsettling with the unjust. Sit a while."},
+  counting_house:{name:'the Reckoner', intro:"Change, reckoning, deliberation. The balance shifts — or only seems to. Weigh it.", duel:"Tally quickly — real shift or false?", win:"Your ledger balances. You weigh meaning exactly.", low:"You confuse the true shift with the warped view. Recount."},
+  archive:{name:'the Archivist', intro:"Knowledge, wit, and scale. Insider lore and slow minds. Shelve each word right.", duel:"Cite it fast — which term?", win:"You file every word in its place. Learned.", low:"Your shelves are muddled still. Read the stacks again."},
+  throne_room:{name:'the Steward', intro:"Rebellion and alliance — turning against, or binding to, authority. Choose true.", duel:"The throne watches. Which act is this?", win:"You know loyalty from revolt on sight. Well stewarded.", low:"You mistake mutiny for mere avoidance. Return to the hall."},
+  square:{name:'the Elder', intro:"The unwritten rules of a people, and the bargains beneath a state. Weigh the bond.", duel:"Quickly — custom or contract?", win:"You know the small rules from the great ones. Wise.", low:"You blur custom and covenant. Sit with the elders again."},
+};
+function slug(s){ return String(s).toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,''); }
+
+function buildGenerated(wd){
+  const words={};
+  wd.words.forEach(w=>{ words[slug(w.word)]={label:w.word, def:w.definition, nuance:w.nuance_vs_synonym}; });
+  const precision=[];
+  wd.words.forEach(w=>{
+    (w.scenarios||[]).forEach(sc=>{
+      const ex=slug(sc.best_word), cl=slug(sc.plausible_distractor);
+      if(!words[ex]) words[ex]={label:sc.best_word};
+      if(!words[cl]) words[cl]={label:sc.plausible_distractor, external:true};
+      const pool=Object.keys(words).filter(k=>!words[k].external && k!==ex && k!==cl);
+      shuffle(pool);
+      const fillers=pool.slice(0,2);
+      const tiers={};
+      tiers[ex]={t:'exact', x:`Precision Strike. <b>${words[ex].label}</b> — ${w.nuance_vs_synonym||w.definition}`};
+      tiers[cl]={t:'close', x:sc.distractor_explanation};
+      fillers.forEach(k=>{ tiers[k]={t:'miss', x:`<b>${words[k].label}</b>: ${(words[k].nuance||words[k].def||'a different sense entirely')} — it doesn't fit here.`}; });
+      precision.push({situation:sc.situation, tiers});
+    });
+  });
+  shuffle(precision);
+  const rounds=precision.map(p=>{
+    const ex=Object.keys(p.tiers).find(k=>p.tiers[k].t==='exact');
+    const cl=Object.keys(p.tiers).find(k=>p.tiers[k].t==='close');
+    return {situation:p.situation, answer:ex, options:[ex,cl]};
+  });
+  const gm=Object.assign({win:'',low:'',duel:''}, GM_TABLE[wd.id]||{name:'the Keeper'}, {glyph:GLYPHS[wd.id]||GLYPHS.forge});
+  return {id:wd.id, name:wd.name, theme:wd.theme, words, precision,
+    impostor:null, sharpen:[], duel:{timePerRound:8000, rounds}, gm,
+    target: precision.length*200 };
+}
+
+const FORGE_BUNDLE = {id:'forge', name:'The Forge', theme:'Bringing things into being.',
+  words:FORGE_WORDS, precision:FORGE_PRECISION, impostor:FORGE_IMPOSTOR, sharpen:FORGE_SHARPEN,
+  duel:FORGE_DUEL, gm:FORGE_GM, target:1400};
+
+const ALL = (window.WORLD_DATA ? window.WORLD_DATA.worlds : []).map(wd=>
+  wd.id==='forge' ? FORGE_BUNDLE : buildGenerated(wd));
+/* Forge first on the map */
+ALL.sort((a,b)=> (a.id==='forge'?-1:b.id==='forge'?1:0));
+
+function activateWorld(b){
+  WORDS=b.words; PRECISION=b.precision; IMPOSTOR=b.impostor;
+  SHARPEN=b.sharpen||[]; DUEL=b.duel; GM=b.gm; TARGET=b.target; W=b;
+}
+
+/* ============================================================ */
+const app = document.getElementById('app');
+const flash = document.getElementById('flash');
+const toastEl = document.getElementById('toast');
+
+const state = {
+  score:0,
+  precisionStrikes:0,
+  totalAnswers:0,
+  correctFirst:0,
+  duelStreak:0,
+  bestDuelStreak:0,
+};
+
+const save = JSON.parse(localStorage.getItem('forgeSave')||'{}');
+
+function pct(){ return Math.min(1, state.score/TARGET); }
+function setRestore(){ document.documentElement.style.setProperty('--restore', pct().toFixed(3)); }
+
+function toast(msg){
+  toastEl.textContent=msg; toastEl.classList.add('show');
+  clearTimeout(toast._t); toast._t=setTimeout(()=>toastEl.classList.remove('show'),1500);
+}
+function strikeFX(){
+  flash.classList.remove('go'); void flash.offsetWidth; flash.classList.add('go');
+  const burst=document.createElement('div'); burst.className='spark-burst';
+  for(let i=0;i<14;i++){
+    const s=document.createElement('span'); s.className='spk';
+    const ang=Math.random()*Math.PI*2, dist=40+Math.random()*90;
+    s.style.setProperty('--sx',(Math.cos(ang)*dist).toFixed(0)+'px');
+    s.style.setProperty('--sy',(Math.sin(ang)*dist).toFixed(0)+'px');
+    s.style.animationDelay=(Math.random()*.1).toFixed(2)+'s';
+    burst.appendChild(s);
+  }
+  document.body.appendChild(burst);
+  setTimeout(()=>burst.remove(),800);
+}
+function spawnEmbers(){
+  const f=document.getElementById('embers-bg'); if(!f) return;
+  for(let i=0;i<22;i++){
+    const s=document.createElement('span'); s.className='eb';
+    s.style.left=(Math.random()*100).toFixed(1)+'%';
+    s.style.setProperty('--dx',(Math.random()*80-40).toFixed(0)+'px');
+    s.style.animationDelay=(Math.random()*7).toFixed(2)+'s';
+    s.style.animationDuration=(6+Math.random()*5).toFixed(2)+'s';
+    s.style.width=s.style.height=(2.5+Math.random()*3).toFixed(1)+'px';
+    f.appendChild(s);
+  }
+}
+function addScore(n){ state.score+=n; setRestore(); }
+function haptic(){ if(navigator.vibrate) navigator.vibrate(12); }
+
+/* ---------- header shared by all run screens ---------- */
+function runHeader(phaseName){
+  const p=Math.round(pct()*100);
+  return `
+  <div class="runhead">
+    <div class="runhead-top">
+      <button class="back" onclick="confirmQuit()">‹ Map</button>
+      <div class="phase-name">${phaseName}</div>
+      <div class="score-chip">${state.score}<small> pts</small></div>
+    </div>
+    <div class="restore-track"><div class="restore-fill" style="width:${p}%"></div></div>
+    <div class="restore-label">${W?W.name:'World'} restored — ${p}%</div>
+  </div>`;
+}
+function confirmQuit(){
+  if(confirm('Leave this world? Your run resets.')){ startRun.started=false; renderMap(); }
+}
+
+/* ---------- MAP ---------- */
+function renderMap(){
+  const done = ALL.filter(w=>save[w.id]&&save[w.id].restored).length;
+  const vaultPct = Math.round(done/ALL.length*100);
+  document.documentElement.style.setProperty('--restore', (0.12+0.88*done/ALL.length).toFixed(3));
+
+  app.innerHTML=`
+  <div class="screen mapwrap" style="padding-top:34px">
+    <div class="center">
+      <div class="eyebrow">The Word Vault</div>
+      <h1 class="serif-title" style="margin-top:6px">Word Worlds</h1>
+      <div class="wc-sub" style="max-width:320px;margin:10px auto 0">
+        ${ALL.length} worlds of near-synonyms. Restore each by telling its words apart.
+      </div>
+    </div>
+    <div class="restore-track" style="margin:18px 0 4px;height:9px">
+      <div class="restore-fill" style="width:${vaultPct}%"></div>
+    </div>
+    <div class="restore-label">Vault restored — ${done}/${ALL.length} worlds</div>
+
+    <div class="worldlist">
+      ${ALL.map(w=>{
+        const rec=save[w.id]||{};
+        const wr = rec.restored;
+        const best = rec.best||0;
+        const words = Object.values(w.words).filter(x=>!x.external).map(x=>x.label).slice(0,4).join(' · ');
+        return `<button class="world-card active" onclick="startRun('${w.id}')">
+          <div class="wc-icon">${emblem(40, w.gm.glyph)}</div>
+          <div class="wc-body">
+            <div class="wc-name">${w.name}</div>
+            <div class="wc-sub">${words}</div>
+            <div class="wc-bar"><i style="width:${wr?100:(best?60:0)}%"></i></div>
+          </div>
+          <div class="wc-tag ${wr?'tag-done':'tag-play'}">${wr?'Restored':'Play'}</div>
+        </button>`;
+      }).join('')}
+    </div>
+    <div class="footer-note">The Forge is hand-crafted · other worlds forged from the vault data</div>
+  </div>`;
+}
+
+/* ---------- RUN CONTROLLER ---------- */
+function startRun(id){
+  const b = ALL.find(x=>x.id===(id||(W&&W.id)||'forge')) || FORGE_BUNDLE;
+  activateWorld(b);
+  state.score=0; state.precisionStrikes=0; state.totalAnswers=0;
+  state.correctFirst=0; state.duelStreak=0; state.bestDuelStreak=0;
+  startRun.started=true;
+  setRestore();
+  renderIntro();
+}
+
+/* ---------- INTRO ---------- */
+function renderIntro(){
+  const shown=Object.values(WORDS).filter(w=>!w.external);
+  app.innerHTML=`
+  <div class="screen">
+    ${runHeader(W.name)}
+    <div class="round">
+      ${gmBanner(GM.intro)}
+      <div class="prompt-label" style="text-align:center;margin:18px 0 10px">The words of ${W.name}</div>
+      <div class="cards">
+        ${shown.map(w=>`
+          <div class="wordcard plate-static">
+            <span class="w">${w.label}</span>
+          </div>`).join('')}
+      </div>
+      <div class="spacer"></div>
+      <button class="btn" onclick="renderPrecision(0)">Begin · Precision Trials</button>
+    </div>
+  </div>`;
+}
+
+/* ---------- PRECISION ---------- */
+function dots(i,n){
+  return `<div class="progress-dots">${Array.from({length:n},(_,k)=>
+    `<div class="dot ${k<i?'done':k===i?'cur':''}"></div>`).join('')}</div>`;
+}
+
+function renderPrecision(i){
+  if(i>=PRECISION.length){ return IMPOSTOR ? renderImpostor() : renderDuelIntro(); }
+  const r=PRECISION[i];
+  const cards=shuffle(Object.keys(r.tiers));
+  let promptCard, ask;
+  if(r.cloze){
+    const parts=r.cloze.split('%');
+    promptCard=`<div class="commission">
+      <div class="prompt-label" style="color:var(--commission-label)">The commission</div>
+      <div class="cloze">${parts[0]}<span class="slot" id="slot">?</span>${parts[1]||''}</div>
+    </div>`;
+    ask=`Forge the missing word.`;
+  } else {
+    promptCard=`<div class="situation-card">
+      <div class="prompt-label">The Situation</div>
+      <div class="situation-text">${r.situation}</div>
+    </div>`;
+    ask=`Which word is <b>exactly</b> right?`;
+  }
+  app.innerHTML=`
+  <div class="screen">
+    ${runHeader('Precision · '+(i+1)+'/'+PRECISION.length)}
+    <div class="round">
+      ${dots(i,PRECISION.length)}
+      ${promptCard}
+      <div class="ask">${ask}</div>
+      <div class="cards" id="cards">
+        ${cards.map(k=>`
+          <button class="wordcard" data-w="${k}" onclick="answerPrecision(${i},'${k}',this)">
+            <span class="w">${WORDS[k].label}</span>
+          </button>`).join('')}
+      </div>
+      <div id="fb"></div>
+    </div>
+  </div>`;
+}
+
+function answerPrecision(i,pick,el){
+  const r=PRECISION[i];
+  const res=r.tiers[pick];
+  const t=res.t;
+  state.totalAnswers++;
+  haptic();
+
+  if(r.cloze){
+    const slot=document.getElementById('slot');
+    if(slot){
+      const ex=Object.keys(r.tiers).find(k=>r.tiers[k].t==='exact');
+      slot.textContent=WORDS[ex].label.toLowerCase();
+      slot.classList.add(pick===ex?'slot-good':'slot-bad');
+    }
+  }
+
+  // lock cards, style them
+  document.querySelectorAll('#cards .wordcard').forEach(c=>{
+    c.onclick=null; c.style.cursor='default';
+    const w=c.dataset.w;
+    if(w===pick) c.classList.add('pick-'+t);
+    else if(r.tiers[w].t==='exact') c.classList.add('reveal-exact');
+    else c.classList.add('dim');
+    if(r.tiers[w].t==='exact'){ c.insertAdjacentHTML('beforeend','<span class="tick" style="color:var(--good)">✓ exact</span>'); }
+  });
+
+  let pts = PTS[t];
+  addScore(pts);
+  if(t==='exact'){ state.precisionStrikes++; state.correctFirst++; strikeFX(); toast('⚡ Precision Strike!'); }
+
+  const badgeTxt = t==='exact'?'Precision Strike':(t==='close'?'Close — but not sharp':'Off the mark');
+  const exactKey = Object.keys(r.tiers).find(k=>r.tiers[k].t==='exact');
+
+  let html=`<div class="feedback">
+    <div class="verdict">
+      <span class="badge ${t}">${badgeTxt}</span>
+      <span class="pts">+${pts}</span>
+    </div>
+    <div class="explain"><span class="lead">${WORDS[pick].label}</span>${res.x}</div>`;
+  if(t!=='exact'){
+    html+=`<div class="explain"><span class="lead">The precise word · ${WORDS[exactKey].label}</span>${r.tiers[exactKey].x}</div>`;
+  }
+  html+=`<div class="spacer"></div>
+    <button class="btn" onclick="renderPrecision(${i+1})">${i+1>=PRECISION.length?'Next Trial ›':'Continue'}</button>
+    </div>`;
+  document.getElementById('fb').innerHTML=html;
+  updateHeaderScore();
+}
+
+/* ---------- IMPOSTOR ---------- */
+function renderImpostor(){
+  const r=IMPOSTOR;
+  app.innerHTML=`
+  <div class="screen">
+    ${runHeader('Impostor Round')}
+    <div class="round">
+      <div class="situation-card">
+        <div class="prompt-label">The Situation</div>
+        <div class="situation-text">${r.situation}</div>
+      </div>
+      <div class="ask">${r.ask}</div>
+      <div class="cards" id="cards">
+        ${r.order.map(k=>`
+          <button class="wordcard" data-w="${k}" onclick="answerImpostor('${k}',this)">
+            <span class="w">${WORDS[k].label}</span>
+            <span class="tick" style="color:var(--ash)">eject ⏏</span>
+          </button>`).join('')}
+      </div>
+      <div id="fb"></div>
+    </div>
+  </div>`;
+}
+function answerImpostor(pick,el){
+  const r=IMPOSTOR; const correct = pick===r.impostor;
+  state.totalAnswers++; haptic();
+  document.querySelectorAll('#cards .wordcard').forEach(c=>{
+    c.onclick=null; c.style.cursor='default';
+    const w=c.dataset.w;
+    if(w===r.impostor) c.classList.add(correct&&w===pick?'pick-exact':'reveal-exact');
+    else if(w===pick) c.classList.add('pick-miss');
+    else c.classList.add('dim');
+    if(w===r.impostor) c.querySelector('.tick').outerHTML='<span class="tick" style="color:var(--good)">✓ impostor</span>';
+  });
+  const pts = correct?PTS.impostor:0;
+  addScore(pts);
+  if(correct){ state.correctFirst++; strikeFX(); toast('⏏ Ejected!'); }
+  document.getElementById('fb').innerHTML=`
+    <div class="feedback">
+      <div class="verdict">
+        <span class="badge ${correct?'exact':'miss'}">${correct?'Impostor Ejected':'Wrong Ejection'}</span>
+        <span class="pts">+${pts}</span>
+      </div>
+      <div class="explain"><span class="lead">Why ${WORDS[r.impostor].label} is the impostor</span>${r.explain}</div>
+      <div class="spacer"></div>
+      <button class="btn" onclick="renderSharpen(0,0)">Continue › Sharpen</button>
+    </div>`;
+  updateHeaderScore();
+}
+
+/* ---------- SHARPEN ---------- */
+function renderSharpen(idx, phase){
+  if(idx>=SHARPEN.length){ return renderDuelIntro(); }
+  const s=SHARPEN[idx];
+  if(phase===0){
+    const opts=shuffle(s.step1.options.slice());
+    app.innerHTML=`
+    <div class="screen">
+      ${runHeader('Sharpen · '+(idx+1)+'/'+SHARPEN.length)}
+      <div class="round">
+        <div class="situation-card">
+          <div class="prompt-label">The Situation</div>
+          <div class="situation-text">${s.step1.situation}</div>
+        </div>
+        <div class="ask">${s.step1.ask}</div>
+        <div class="cards" id="cards">
+          ${opts.map(k=>`<button class="wordcard" data-w="${k}" onclick="answerSharpen1(${idx},'${k}',this)">
+            <span class="w">${WORDS[k].label}</span></button>`).join('')}
+        </div>
+        <div id="fb"></div>
+      </div>
+    </div>`;
+  }
+}
+function answerSharpen1(idx,pick,el){
+  const s=SHARPEN[idx]; const ok = pick===s.step1.answer;
+  haptic();
+  document.querySelectorAll('#cards .wordcard').forEach(c=>{
+    c.onclick=null;c.style.cursor='default';const w=c.dataset.w;
+    if(w===s.step1.answer) c.classList.add(ok?'pick-exact':'reveal-exact');
+    else if(w===pick) c.classList.add('pick-close');
+    else c.classList.add('dim');
+  });
+  const pts = ok?PTS.sharpen1:Math.round(PTS.sharpen1/2);
+  addScore(pts);
+  const note = ok? s.step1.ok : `Not quite — the adequate read here is <b>${WORDS[s.step1.answer].label}</b>. ${s.step1.ok}`;
+  document.getElementById('fb').innerHTML=`
+    <div class="feedback">
+      <div class="verdict"><span class="badge ${ok?'exact':'close'}">Adequate word</span><span class="pts">+${pts}</span></div>
+      <div class="explain">${note}</div>
+      <div class="spacer"></div>
+      <button class="btn" onclick="renderSharpen2(${idx})">The situation escalates ›</button>
+    </div>`;
+  updateHeaderScore();
+}
+function renderSharpen2(idx){
+  const s=SHARPEN[idx]; const st=s.step2;
+  const opts=shuffle(st.options.slice());
+  app.innerHTML=`
+  <div class="screen">
+    ${runHeader('Sharpen · '+(idx+1)+'/'+SHARPEN.length)}
+    <div class="round">
+      <div class="situation-card">
+        <div class="prompt-label">…and then</div>
+        <div class="situation-text">${st.add}</div>
+      </div>
+      <div class="ask">${st.ask}</div>
+      <div class="cards" id="cards">
+        ${opts.map(k=>`<button class="wordcard" data-w="${k}" onclick="answerSharpen2(${idx},'${k}',this)">
+          <span class="w">${WORDS[k].label}</span></button>`).join('')}
+      </div>
+      <div id="fb"></div>
+    </div>
+  </div>`;
+}
+function answerSharpen2(idx,pick,el){
+  const s=SHARPEN[idx]; const st=s.step2; const ok=pick===st.answer;
+  state.totalAnswers++; haptic();
+  document.querySelectorAll('#cards .wordcard').forEach(c=>{
+    c.onclick=null;c.style.cursor='default';const w=c.dataset.w;
+    if(w===st.answer) c.classList.add(ok?'pick-exact':'reveal-exact');
+    else if(w===pick) c.classList.add('pick-miss');
+    else c.classList.add('dim');
+  });
+  const pts = ok?PTS.sharpen2:0;
+  addScore(pts);
+  if(ok){ state.correctFirst++; strikeFX(); toast('🔥 Sharpened!'); }
+  document.getElementById('fb').innerHTML=`
+    <div class="feedback">
+      <div class="verdict"><span class="badge ${ok?'exact':'miss'}">${ok?'Upgraded — precise':'Lost the edge'}</span><span class="pts">+${pts}</span></div>
+      <div class="explain"><span class="lead">Why ${WORDS[st.answer].label} now</span>${st.explain}</div>
+      <div class="spacer"></div>
+      <button class="btn" onclick="renderSharpen(${idx+1},0)">${idx+1>=SHARPEN.length?'To the Sibling Duel ›':'Continue'}</button>
+    </div>`;
+  updateHeaderScore();
+}
+
+/* ---------- SIBLING DUEL ---------- */
+function renderDuelIntro(){
+  const secs=Math.round(DUEL.timePerRound/1000);
+  const n=DUEL.rounds.length;
+  let title, body, btn;
+  if(DUEL.a && DUEL.b){
+    const A=WORDS[DUEL.a], B=WORDS[DUEL.b];
+    title='The World Boss';
+    body=`The two closest words in ${W.name}. Same shape, one difference —
+      <b>${A.label}</b> is visible artifice with no motive; <b>${B.label}</b> is cooked up to manipulate.
+      ${n} situations. ${secs} seconds each. Place them fast.`;
+    btn='Start the Duel';
+  } else {
+    title='The Gauntlet';
+    body=`Every word of ${W.name}, back to back, against the clock.
+      ${n} situations. ${secs} seconds each. Keep the fire alive.`;
+    btn='Start the Gauntlet';
+  }
+  app.innerHTML=`
+  <div class="screen">
+    ${runHeader('Boss · '+W.name)}
+    <div class="round center">
+      ${gmBanner(GM.duel)}
+      <div class="spacer"></div>
+      <div class="situation-card">
+        <div class="prompt-label" style="text-align:center">${title}</div>
+        <div class="situation-text" style="font-size:1.05rem;margin-top:10px">${body}</div>
+      </div>
+      <div class="spacer"></div>
+      <button class="btn" onclick="startDuel()">${btn}</button>
+    </div>
+  </div>`;
+}
+let duelTimer=null, duelStart=0, duelDur=0;
+function startDuel(){ state.duelStreak=0; renderDuelRound(0); }
+
+function renderDuelRound(i){
+  clearInterval(duelTimer);
+  if(i>=DUEL.rounds.length){ return finishRun(); }
+  const r=DUEL.rounds[i];
+  const cards=shuffle((r.options||[DUEL.a,DUEL.b]).slice());
+  app.innerHTML=`
+  <div class="screen">
+    ${runHeader('Boss · '+(i+1)+'/'+DUEL.rounds.length)}
+    <div class="round">
+      <div class="combo" id="combo">${state.duelStreak>1?state.duelStreak+' in a row · combo':''}</div>
+      <div class="timer-track"><div class="timer-fill" id="timer"></div></div>
+      <div class="situation-card">
+        <div class="prompt-label">Place the word</div>
+        <div class="situation-text">${r.situation}</div>
+      </div>
+      <div class="duel-cards" id="cards" style="margin-top:18px">
+        ${cards.map(k=>`<button class="wordcard" data-w="${k}" onclick="answerDuel(${i},'${k}')">
+          <span class="w">${WORDS[k].label}</span></button>`).join('')}
+      </div>
+      <div id="fb"></div>
+    </div>
+  </div>`;
+
+  // timer
+  duelStart=Date.now(); duelDur=DUEL.timePerRound;
+  const tEl=document.getElementById('timer');
+  duelTimer=setInterval(()=>{
+    const left=Math.max(0,1-(Date.now()-duelStart)/duelDur);
+    tEl.style.width=(left*100)+'%';
+    if(left<0.33) tEl.classList.add('low');
+    if(left<=0){ clearInterval(duelTimer); answerDuel(i,null,true); }
+  },80);
+}
+function answerDuel(i,pick,timeout){
+  clearInterval(duelTimer);
+  const r=DUEL.rounds[i];
+  const remaining = Math.max(0, 1-(Date.now()-duelStart)/duelDur);
+  const correct = pick===r.answer;
+  state.totalAnswers++;
+  if(!timeout) haptic();
+
+  document.querySelectorAll('#cards .wordcard').forEach(c=>{
+    c.onclick=null;c.style.cursor='default';const w=c.dataset.w;
+    if(w===r.answer) c.classList.add(correct?'pick-exact':'reveal-exact');
+    else if(w===pick) c.classList.add('pick-miss');
+    else c.classList.add('dim');
+  });
+
+  let pts=0, bonus=0;
+  if(correct){
+    bonus=Math.round(PTS.duelBonus*remaining);
+    pts=PTS.duel+bonus;
+    state.duelStreak++; state.bestDuelStreak=Math.max(state.bestDuelStreak,state.duelStreak);
+    state.correctFirst++;
+    if(state.duelStreak>=3) strikeFX();
+    toast(`+${pts}${state.duelStreak>=2?' · '+state.duelStreak+' streak':''}`);
+  } else {
+    state.duelStreak=0;
+  }
+  addScore(pts);
+  updateHeaderScore();
+
+  document.getElementById('fb').innerHTML=`
+    <div class="feedback">
+      <div class="verdict">
+        <span class="badge ${correct?'exact':'miss'}">${timeout?'Too slow':(correct?'Correct':'Wrong sibling')}</span>
+        <span class="pts">+${pts}${bonus?` <small style="color:var(--ash);font-weight:600">(${bonus} speed)</small>`:''}</span>
+      </div>
+      <div class="explain">The answer was <b>${WORDS[r.answer].label}</b>.</div>
+      <div class="spacer"></div>
+      <button class="btn" onclick="renderDuelRound(${i+1})">${i+1>=DUEL.rounds.length?'Finish the Forge ›':'Next ›'}</button>
+    </div>`;
+}
+
+/* ---------- RESULTS / RESTORATION ---------- */
+function finishRun(){
+  const p=Math.round(pct()*100);
+  const restored = p>=100 || state.score>=TARGET;
+  // persist
+  const rec=save[W.id]=save[W.id]||{};
+  rec.best=Math.max(rec.best||0,state.score);
+  if(restored) rec.restored=true;
+  localStorage.setItem('forgeSave',JSON.stringify(save));
+  setRestore();
+
+  const acc = state.totalAnswers? Math.round(state.correctFirst/state.totalAnswers*100):0;
+  let rank,rankNote;
+  if(p>=100){ rank='Master'; rankNote=`${W.name} is fully restored. You wield its words with precision.`; }
+  else if(p>=75){ rank='Adept'; rankNote=`${W.name} glows again. A few nuances still slip — run it back.`; }
+  else if(p>=50){ rank='Apprentice'; rankNote='The close calls are where the learning lives. Go again.'; }
+  else { rank='Novice'; rankNote='Study the near-synonyms and tell them apart. Return.'; }
+
+  document.documentElement.style.setProperty('--restore', restored?'1':(p/100).toFixed(2));
+
+  app.innerHTML=`
+  <div class="screen">
+    <div class="result-hero">
+      <div class="eyebrow">${restored?W.name+' is Restored':'Restoration'}</div>
+      <div class="result-emblem">${emblem(96, GM.glyph)}</div>
+      <div class="big-score">${state.score}</div>
+      <div class="restore-label" style="text-align:center;font-size:.8rem">points · ${p}% restored</div>
+    </div>
+    <div class="restore-track" style="margin-top:18px;height:12px">
+      <div class="restore-fill" style="width:${p}%"></div>
+    </div>
+    <div class="stat-grid">
+      <div class="stat"><div class="k">Precision Strikes</div><div class="v">${state.precisionStrikes}<small> / ${PRECISION.length}</small></div></div>
+      <div class="stat"><div class="k">Accuracy</div><div class="v">${acc}<small>%</small></div></div>
+      <div class="stat"><div class="k">Best Duel Streak</div><div class="v">${state.bestDuelStreak}<small> / ${DUEL.rounds.length}</small></div></div>
+      <div class="stat"><div class="k">Rank</div><div class="v" style="font-size:1.2rem;color:var(--gold-soft)">${rank}</div></div>
+    </div>
+    <div class="rank-line">${rankNote}</div>
+    ${gmBanner(restored?GM.win:GM.low)}
+    <div class="spacer"></div>
+    <div class="foot-actions">
+      <button class="btn" onclick="startRun(W.id)">Play Again</button>
+      <button class="btn ghost" onclick="renderMap()">Return to Map</button>
+    </div>
+    <div class="footer-note">15 more worlds wait in the vault.</div>
+  </div>`;
+  if(restored){ strikeFX(); setTimeout(()=>toast(W.name+' restored!'),300); }
+}
+
+/* ---------- helpers ---------- */
+function shuffle(a){ for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
+function updateHeaderScore(){
+  const chip=document.querySelector('.score-chip'); if(chip) chip.innerHTML=state.score+'<small> pts</small>';
+  const p=Math.round(pct()*100);
+  const fill=document.querySelector('.restore-fill'); if(fill) fill.style.width=p+'%';
+  const lab=document.querySelector('.restore-label'); if(lab) lab.textContent=(W?W.name:'World')+' restored — '+p+'%';
+}
+
+/* boot */
+spawnEmbers();
+renderMap();
+</script>
+</body>
+</html>
